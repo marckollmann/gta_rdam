@@ -4,7 +4,7 @@ import { GANGS } from './npc.js';
 
 export class UI {
   constructor() {
-    this.healthBar = document.getElementById('health-bar');
+    this.healthHearts = document.getElementById('health-hearts');
     this.armorBar = document.getElementById('armor-bar');
     this.weaponInfo = document.getElementById('weapon-info');
     this.wantedStars = document.getElementById('wanted-stars');
@@ -25,7 +25,11 @@ export class UI {
   }
 
   update(dt, player, wanted) {
-    this.healthBar.style.width = Math.max(0, player.health) + '%';
+    const filledHearts = Math.ceil(Math.max(0, player.health) / 10);
+    let heartsHtml = '';
+    for (let i = 0; i < 10; i++) heartsHtml += `<span class="heart${i < filledHearts ? '' : ' empty'}">❤</span>`;
+    this.healthHearts.innerHTML = heartsHtml;
+
     this.armorBar.style.width = Math.max(0, player.armor) + '%';
     const wk = WEAPONS[player.currentWeapon()];
     const ammo = player.ammo[player.currentWeapon()];
@@ -38,7 +42,9 @@ export class UI {
     let html = '';
     for (const g of GANGS) {
       const r = Math.round(player.respect[g.id] || 0);
-      html += `<div style="color:${g.color}">${g.name}: ${r > 0 ? '+' : ''}${r}</div>`;
+      const pct = (r + 100) / 2; // -100..100 -> 0..100%
+      html += `<div class="respect-row"><span style="color:${g.color}">${g.name}</span>` +
+        `<div class="respect-bar-wrap"><div class="respect-bar-fill" style="width:${pct}%;background:${g.color}"></div></div></div>`;
     }
     this.respectEl.innerHTML = html;
 

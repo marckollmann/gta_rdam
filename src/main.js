@@ -353,22 +353,33 @@ let respawnTimer = 3;
 const frenzyStar = { x: 5300, y: 2000 };
 
 // ---- Rendering ------------------------------------------------------------
-const ASPHALT = '#3a3d40';
-const SIDEWALK = '#8f8a7c';
+const ASPHALT = '#565f58';
+const SIDEWALK = '#c9bd9e';
+const SIDEWALK_LINE = 'rgba(120,108,80,0.35)';
+const TILE = 28;
 
 function drawGround(x0, y0, x1, y1) {
   const startX = Math.floor(x0 / CELL) * CELL;
   const startY = Math.floor(y0 / CELL) * CELL;
 
-  // Base pass: sidewalk everywhere on land, so building gaps read as pavement.
+  // Base pass: tiled flagstone sidewalk everywhere on land.
   for (const d of DISTRICTS) {
     const r = d.rect;
     if (r.x + r.w < x0 || r.x > x1 || r.y + r.h < y0 || r.y > y1) continue;
+    const rx0 = Math.max(r.x, x0), ry0 = Math.max(r.y, y0);
+    const rx1 = Math.min(r.x + r.w, x1), ry1 = Math.min(r.y + r.h, y1);
     ctx.fillStyle = SIDEWALK;
-    ctx.fillRect(Math.max(r.x, x0), Math.max(r.y, y0), Math.min(r.x + r.w, x1) - Math.max(r.x, x0), Math.min(r.y + r.h, y1) - Math.max(r.y, y0));
+    ctx.fillRect(rx0, ry0, rx1 - rx0, ry1 - ry0);
+    ctx.strokeStyle = SIDEWALK_LINE;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    for (let tx = Math.floor(rx0 / TILE) * TILE; tx < rx1; tx += TILE) { ctx.moveTo(tx, ry0); ctx.lineTo(tx, ry1); }
+    for (let ty = Math.floor(ry0 / TILE) * TILE; ty < ry1; ty += TILE) { ctx.moveTo(rx0, ty); ctx.lineTo(rx1, ty); }
+    ctx.stroke();
   }
 
-  // Road cells: dark asphalt + chunky dashed centerlines, GTA2-style.
+  // Road cells: green-grey asphalt with white dashed centerlines and
+  // occasional lane-direction chevrons, like GTA2's street markings.
   for (let wy = startY; wy < y1; wy += CELL) {
     for (let wx = startX; wx < x1; wx += CELL) {
       const midx = wx + CELL / 2, midy = wy + CELL / 2;
@@ -386,21 +397,42 @@ function drawGround(x0, y0, x1, y1) {
         ctx.fillStyle = ASPHALT;
         ctx.fillRect(wx, wy, CELL, CELL);
 
-        // dashed yellow centerline, oriented along the road's run
-        ctx.fillStyle = '#f2cc3a';
-        const dash = 18, gap = 14;
-        if (isRoadCol || nearTunnelX) {
+        const vertical = isRoadCol || nearTunnelX;
+        const dash = 16, gap = 12;
+        ctx.fillStyle = 'rgba(235,235,225,0.85)';
+        if (vertical) {
           for (let dy = 4; dy < CELL; dy += dash + gap) {
-            ctx.fillRect(wx + CELL / 2 - 2, wy + dy, 4, Math.min(dash, CELL - dy));
+            ctx.fillRect(wx + CELL / 2 - 1.5, wy + dy, 3, Math.min(dash, CELL - dy));
           }
         } else {
           for (let dx = 4; dx < CELL; dx += dash + gap) {
-            ctx.fillRect(wx + dx, wy + CELL / 2 - 2, Math.min(dash, CELL - dx), 4);
+            ctx.fillRect(wx + dx, wy + CELL / 2 - 1.5, Math.min(dash, CELL - dx), 3);
           }
         }
+
+        // lane chevrons every third cell along the road, GTA2's "<-->" markers
+        const cellIdx = Math.floor(wx / CELL) + Math.floor(wy / CELL) * 3;
+        if (cellIdx % 3 === 0) drawChevron(wx + CELL / 2, wy + CELL / 2, vertical);
       }
     }
   }
+}
+
+function drawChevron(cx, cy, vertical) {
+  ctx.save();
+  ctx.translate(cx, cy);
+  if (vertical) ctx.rotate(Math.PI / 2);
+  ctx.strokeStyle = 'rgba(235,235,225,0.8)';
+  ctx.lineWidth = 2.5;
+  ctx.lineCap = 'round';
+  for (const dir of [-1, 1]) {
+    ctx.beginPath();
+    ctx.moveTo(dir * 20, -5);
+    ctx.lineTo(dir * 26, 0);
+    ctx.lineTo(dir * 20, 5);
+    ctx.stroke();
+  }
+  ctx.restore();
 }
 
 function drawRiver(x0, y1) {
@@ -445,18 +477,23 @@ function drawBuilding(b) {
   ctx.fillStyle = wallColor;
   ctx.fillRect(b.x + wallDepth * 0.5, b.y + wallDepth * 0.5, b.w, b.h);
 
-  ctx.fillStyle = b.color;
+  // light perimeter trim, like the pale roof-edge border GTA2 buildings show
+  ctx.fillStyle = shade(b.color, 0.45);
   ctx.fillRect(b.x, b.y, b.w, b.h);
 
-  // roof highlight strip (top + left edge catch the light)
-  ctx.fillStyle = shade(b.color, 0.25);
-  ctx.fillRect(b.x, b.y, b.w, 4);
-  ctx.fillRect(b.x, b.y, 4, b.h);
+  ctx.fillStyle = b.color;
+  ctx.fillRect(b.x + 3, b.y + 3, b.w - 6, b.h - 6);
 
-  // thick black outline, GTA2's signature sprite edge
-  ctx.strokeStyle = '#0a0a0a';
-  ctx.lineWidth = 2.5;
+  // roof highlight strip (top + left edge catch the light)
+  ctx.fillStyle = shade(b.color, 0.2);
+  ctx.fillRect(b.x + 3, b.y + 3, b.w - 6, 3);
+  ctx.fillRect(b.x + 3, b.y + 3, 3, b.h - 6);
+
+  // outline, softer than a full black block
+  ctx.strokeStyle = 'rgba(10,10,10,0.75)';
+  ctx.lineWidth = 1.5;
   ctx.strokeRect(b.x, b.y, b.w, b.h);
+  ctx.strokeRect(b.x + 3, b.y + 3, b.w - 6, b.h - 6);
 
   // windows grid
   const cols = Math.max(1, Math.floor(b.w / 10));

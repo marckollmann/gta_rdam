@@ -1,4 +1,4 @@
-import { collidesSolid } from './world.js';
+import { collidesSolid, shade as shadeColor } from './world.js';
 
 export const CAR_TYPES = [
   { name: 'Stadsauto', color: '#d43f3f', w: 34, h: 18, maxSpeed: 260, accel: 220, turn: 3.2, mass: 1 },
@@ -108,59 +108,82 @@ export class Vehicle {
 
     ctx.rotate(this.angle);
 
-    // hard-edged shadow (no blur, like GTA2's flat sprite shadows)
-    ctx.fillStyle = 'rgba(0,0,0,0.4)';
-    ctx.fillRect(-this.w / 2 + 3, -this.h / 2 + 3, this.w, this.h);
+    // soft, slightly offset shadow (rendered-sprite look, not a hard block)
+    ctx.save();
+    ctx.translate(1.5, 2.5);
+    ctx.fillStyle = 'rgba(0,0,0,0.32)';
+    ctx.beginPath();
+    ctx.roundRect(-this.w / 2, -this.h / 2, this.w, this.h, this.h * 0.32);
+    ctx.fill();
+    ctx.restore();
 
     if (this.wrecked) {
-      ctx.fillStyle = '#0a0a0a';
-      ctx.fillRect(-this.w / 2 - 1.5, -this.h / 2 - 1.5, this.w + 3, this.h + 3);
-      ctx.fillStyle = '#2a2320';
-      ctx.fillRect(-this.w / 2, -this.h / 2, this.w, this.h);
-      ctx.fillStyle = '#111';
-      ctx.fillRect(-this.w / 2 + 3, -this.h / 2 + 3, this.w - 6, this.h - 6);
+      ctx.fillStyle = '#1c1815';
+      ctx.beginPath();
+      ctx.roundRect(-this.w / 2, -this.h / 2, this.w, this.h, this.h * 0.32);
+      ctx.fill();
+      ctx.strokeStyle = '#000';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+      ctx.fillStyle = '#050505';
+      ctx.beginPath();
+      ctx.roundRect(-this.w / 2 + 3, -this.h / 2 + 3, this.w - 6, this.h - 6, this.h * 0.2);
+      ctx.fill();
       ctx.restore();
       return;
     }
 
-    // wheels poking out at the corners (chunky top-down look)
-    ctx.fillStyle = '#0a0a0a';
-    const wx = this.w / 2 - 3, wy = this.h / 2 + 1.5;
-    ctx.fillRect(-wx - 2, -wy, 5, 3.5);
-    ctx.fillRect(-wx - 2, wy - 3.5, 5, 3.5);
-    ctx.fillRect(wx - 3, -wy, 5, 3.5);
-    ctx.fillRect(wx - 3, wy - 3.5, 5, 3.5);
+    // rounded chunky body with a subtle glossy gradient, GTA2's rendered-sprite look
+    const grad = ctx.createLinearGradient(0, -this.h / 2, 0, this.h / 2);
+    grad.addColorStop(0, shadeColor(this.type.color, 0.28));
+    grad.addColorStop(0.5, this.type.color);
+    grad.addColorStop(1, shadeColor(this.type.color, -0.22));
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.roundRect(-this.w / 2, -this.h / 2, this.w, this.h, this.h * 0.32);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(0,0,0,0.55)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
 
-    // thick black outline first, body on top — the signature GTA2 sprite edge
-    ctx.fillStyle = '#0a0a0a';
-    ctx.fillRect(-this.w / 2 - 1.5, -this.h / 2 - 1.5, this.w + 3, this.h + 3);
+    // windshield band across the front third
+    ctx.fillStyle = 'rgba(20,30,35,0.85)';
+    ctx.beginPath();
+    ctx.roundRect(this.w / 2 - this.w * 0.36, -this.h / 2 + 2, this.w * 0.22, this.h - 4, 2.5);
+    ctx.fill();
+    ctx.fillStyle = 'rgba(170,220,240,0.55)';
+    ctx.beginPath();
+    ctx.roundRect(this.w / 2 - this.w * 0.34, -this.h / 2 + 3, this.w * 0.14, this.h - 6, 2);
+    ctx.fill();
 
-    ctx.fillStyle = this.type.color;
-    ctx.fillRect(-this.w / 2, -this.h / 2, this.w, this.h);
-
-    // roof/hood highlight and darker rear panel for a pseudo-3D block feel
-    ctx.fillStyle = 'rgba(255,255,255,0.22)';
-    ctx.fillRect(-this.w / 2 + 2, -this.h / 2 + 1.5, this.w * 0.4, this.h - 3);
-    ctx.fillStyle = 'rgba(0,0,0,0.25)';
-    ctx.fillRect(-this.w / 2 + 2, -this.h / 2 + 1.5, this.w * 0.15, this.h - 3);
-
-    // windshield
-    ctx.fillStyle = '#0a0a0a';
-    ctx.fillRect(this.w / 2 - this.w * 0.34, -this.h / 2 + 1, this.w * 0.24, this.h - 2);
-    ctx.fillStyle = 'rgba(160,225,255,0.9)';
-    ctx.fillRect(this.w / 2 - this.w * 0.32, -this.h / 2 + 2, this.w * 0.2, this.h - 4);
+    // faint centerline seam + wheel shadows peeking from under the body
+    ctx.strokeStyle = 'rgba(0,0,0,0.15)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(-this.w / 2 + 3, 0); ctx.lineTo(this.w / 2 - 3, 0);
+    ctx.stroke();
+    ctx.fillStyle = 'rgba(0,0,0,0.5)';
+    const wx = this.w * 0.22;
+    ctx.fillRect(-wx - 2, -this.h / 2 - 0.5, 4, 2);
+    ctx.fillRect(-wx - 2, this.h / 2 - 1.5, 4, 2);
+    ctx.fillRect(wx - 2, -this.h / 2 - 0.5, 4, 2);
+    ctx.fillRect(wx - 2, this.h / 2 - 1.5, 4, 2);
 
     // headlights
     ctx.fillStyle = '#fff7c2';
-    ctx.fillRect(this.w / 2 - 2, -this.h / 2 + 1, 2, 3);
-    ctx.fillRect(this.w / 2 - 2, this.h / 2 - 4, 2, 3);
+    ctx.fillRect(this.w / 2 - 2, -this.h / 2 + 1.5, 2, 2.5);
+    ctx.fillRect(this.w / 2 - 2, this.h / 2 - 4, 2, 2.5);
 
     if (this.type.police) {
       const blink = Math.floor(performance.now() / 200) % 2 === 0;
       ctx.fillStyle = '#0a0a0a';
-      ctx.fillRect(-5, -this.h / 2 - 4.5, 10, 4.5);
+      ctx.beginPath();
+      ctx.roundRect(-5, -this.h / 2 - 4.5, 10, 4.5, 1.5);
+      ctx.fill();
       ctx.fillStyle = blink ? '#ff2b2b' : '#2b6bff';
-      ctx.fillRect(-4, -this.h / 2 - 3, 8, 3);
+      ctx.beginPath();
+      ctx.roundRect(-4, -this.h / 2 - 3, 8, 3, 1);
+      ctx.fill();
     }
 
     ctx.restore();

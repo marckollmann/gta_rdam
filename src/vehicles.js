@@ -108,11 +108,13 @@ export class Vehicle {
 
     ctx.rotate(this.angle);
 
-    // shadow
-    ctx.fillStyle = 'rgba(0,0,0,0.35)';
-    ctx.fillRect(-this.w / 2 + 2, -this.h / 2 + 2, this.w, this.h);
+    // hard-edged shadow (no blur, like GTA2's flat sprite shadows)
+    ctx.fillStyle = 'rgba(0,0,0,0.4)';
+    ctx.fillRect(-this.w / 2 + 3, -this.h / 2 + 3, this.w, this.h);
 
     if (this.wrecked) {
+      ctx.fillStyle = '#0a0a0a';
+      ctx.fillRect(-this.w / 2 - 1.5, -this.h / 2 - 1.5, this.w + 3, this.h + 3);
       ctx.fillStyle = '#2a2320';
       ctx.fillRect(-this.w / 2, -this.h / 2, this.w, this.h);
       ctx.fillStyle = '#111';
@@ -121,15 +123,32 @@ export class Vehicle {
       return;
     }
 
+    // wheels poking out at the corners (chunky top-down look)
+    ctx.fillStyle = '#0a0a0a';
+    const wx = this.w / 2 - 3, wy = this.h / 2 + 1.5;
+    ctx.fillRect(-wx - 2, -wy, 5, 3.5);
+    ctx.fillRect(-wx - 2, wy - 3.5, 5, 3.5);
+    ctx.fillRect(wx - 3, -wy, 5, 3.5);
+    ctx.fillRect(wx - 3, wy - 3.5, 5, 3.5);
+
+    // thick black outline first, body on top — the signature GTA2 sprite edge
+    ctx.fillStyle = '#0a0a0a';
+    ctx.fillRect(-this.w / 2 - 1.5, -this.h / 2 - 1.5, this.w + 3, this.h + 3);
+
     ctx.fillStyle = this.type.color;
     ctx.fillRect(-this.w / 2, -this.h / 2, this.w, this.h);
-    ctx.strokeStyle = 'rgba(0,0,0,0.5)';
-    ctx.lineWidth = 1.5;
-    ctx.strokeRect(-this.w / 2, -this.h / 2, this.w, this.h);
+
+    // roof/hood highlight and darker rear panel for a pseudo-3D block feel
+    ctx.fillStyle = 'rgba(255,255,255,0.22)';
+    ctx.fillRect(-this.w / 2 + 2, -this.h / 2 + 1.5, this.w * 0.4, this.h - 3);
+    ctx.fillStyle = 'rgba(0,0,0,0.25)';
+    ctx.fillRect(-this.w / 2 + 2, -this.h / 2 + 1.5, this.w * 0.15, this.h - 3);
 
     // windshield
-    ctx.fillStyle = 'rgba(150,220,255,0.85)';
-    ctx.fillRect(this.w / 2 - this.w * 0.32, -this.h / 2 + 2, this.w * 0.22, this.h - 4);
+    ctx.fillStyle = '#0a0a0a';
+    ctx.fillRect(this.w / 2 - this.w * 0.34, -this.h / 2 + 1, this.w * 0.24, this.h - 2);
+    ctx.fillStyle = 'rgba(160,225,255,0.9)';
+    ctx.fillRect(this.w / 2 - this.w * 0.32, -this.h / 2 + 2, this.w * 0.2, this.h - 4);
 
     // headlights
     ctx.fillStyle = '#fff7c2';
@@ -138,6 +157,8 @@ export class Vehicle {
 
     if (this.type.police) {
       const blink = Math.floor(performance.now() / 200) % 2 === 0;
+      ctx.fillStyle = '#0a0a0a';
+      ctx.fillRect(-5, -this.h / 2 - 4.5, 10, 4.5);
       ctx.fillStyle = blink ? '#ff2b2b' : '#2b6bff';
       ctx.fillRect(-4, -this.h / 2 - 3, 8, 3);
     }

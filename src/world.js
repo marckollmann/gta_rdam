@@ -17,49 +17,62 @@ function mulberry32(seed) {
   };
 }
 
+// Lighten/darken a #rrggbb hex color by `pct` (-1..1). Used to fake the
+// chunky pseudo-3D roof/wall shading GTA2 used on its top-down buildings.
+export function shade(hex, pct) {
+  const n = parseInt(hex.slice(1), 16);
+  let r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
+  const f = pct < 0 ? 0 : 255;
+  const p = Math.abs(pct);
+  r = Math.round(r + (f - r) * p);
+  g = Math.round(g + (f - g) * p);
+  b = Math.round(b + (f - b) * p);
+  return '#' + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+}
+
 // ---- Districts ------------------------------------------------------------
 // Each district: name, rect (world px), palette, building density/height.
 export const DISTRICTS = [
   {
     id: 'noord', name: 'Noord',
     rect: { x: 0, y: 0, w: 8192, h: 1400 },
-    palette: { building: ['#7a6a52', '#8a7a5f', '#6d5c46'], roof: '#4a3f30', window: '#ffdf8a', accent: '#c9a15a' },
+    palette: { building: ['#b5824a', '#c79552', '#a06f3a'], roof: '#5c3c1e', window: '#ffe25c', accent: '#ff8a1e' },
     density: 0.8, minH: 20, maxH: 60,
   },
   {
     id: 'delfshaven', name: 'Delfshaven',
     rect: { x: 0, y: 1400, w: 4096, h: 2400 },
-    palette: { building: ['#8a3d2e', '#9a4a35', '#7a3626', '#a85c3c'], roof: '#3d2016', window: '#ffd27a', accent: '#e0c98a' },
+    palette: { building: ['#c14a32', '#d1592f', '#a83e28', '#e0693a'], roof: '#5a2414', window: '#ffdd55', accent: '#ffb238' },
     density: 0.9, minH: 18, maxH: 45,
   },
   {
     id: 'centrum', name: 'Centrum',
     rect: { x: 4096, y: 1400, w: 4096, h: 2400 },
-    palette: { building: ['#2b3a4a', '#33465a', '#24303d', '#3d5468'], roof: '#151d24', window: '#7fe8ff', accent: '#ff2d95' },
+    palette: { building: ['#2a3a5c', '#334a75', '#22304a', '#3d5a8a'], roof: '#141d30', window: '#4ff0ff', accent: '#ff2d95' },
     density: 0.95, minH: 60, maxH: 220,
   },
   {
     id: 'kop-van-zuid', name: 'Kop van Zuid',
     rect: { x: 3200, y: 4400, w: 2400, h: 1400 },
-    palette: { building: ['#3a4550', '#455260', '#2f3944', '#526073'], roof: '#1c2329', window: '#8fd6ff', accent: '#ffb238' },
+    palette: { building: ['#355070', '#3f6088', '#2a4058', '#4a72a0'], roof: '#152030', window: '#5cd8ff', accent: '#ffb238' },
     density: 0.85, minH: 50, maxH: 190,
   },
   {
     id: 'katendrecht', name: 'Katendrecht',
     rect: { x: 3200, y: 5800, w: 2400, h: 2392 },
-    palette: { building: ['#8a5a3d', '#9a6a48', '#7a4e34'], roof: '#3a2416', window: '#ffe08a', accent: '#d68a4a' },
+    palette: { building: ['#b5652f', '#c8763b', '#9c5527'], roof: '#4a2610', window: '#ffe066', accent: '#e08a30' },
     density: 0.75, minH: 18, maxH: 40,
   },
   {
     id: 'feijenoord', name: 'Feijenoord',
     rect: { x: 5600, y: 4400, w: 2592, h: 3792 },
-    palette: { building: ['#5a4a3a', '#6a5846', '#4d4030'], roof: '#2a2118', window: '#ffd98a', accent: '#8a9a4a' },
+    palette: { building: ['#6a7a3a', '#7d8f45', '#586a2e'], roof: '#2c3616', window: '#ffe066', accent: '#b8d040' },
     density: 0.8, minH: 18, maxH: 55,
   },
   {
     id: 'harbour', name: 'Maashaven / Waalhaven',
     rect: { x: 0, y: 4400, w: 3200, h: 3792 },
-    palette: { building: ['#555b5e', '#63696c', '#484d50', '#6e5648' /* rust */], roof: '#2c2f31', window: '#ffb44a', accent: '#c0632a' },
+    palette: { building: ['#6b7478', '#828c90', '#565e61', '#8a5c3e' /* rust */], roof: '#2c2f31', window: '#ffb44a', accent: '#e0742a' },
     density: 0.5, minH: 20, maxH: 70,
   },
 ];

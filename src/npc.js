@@ -103,13 +103,21 @@ export class Pedestrian {
     ctx.ellipse(0, 6, 7, 3, 0, 0, Math.PI * 2);
     ctx.fill();
 
-    ctx.fillStyle = this.gang ? this.gang.color : `hsl(${this.hue},55%,${45 * this.shade}%)`;
+    ctx.fillStyle = '#0a0a0a';
+    ctx.beginPath();
+    ctx.arc(0, 0, 9.2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = this.gang ? this.gang.color : `hsl(${this.hue},65%,${45 * this.shade}%)`;
     ctx.beginPath();
     ctx.arc(0, 0, 8, 0, Math.PI * 2);
     ctx.fill();
+    ctx.fillStyle = '#0a0a0a';
+    ctx.beginPath();
+    ctx.arc(0, 0, 5.2, 0, Math.PI * 2);
+    ctx.fill();
     ctx.fillStyle = '#f2c48d';
     ctx.beginPath();
-    ctx.arc(0, 0, 4.4, 0, Math.PI * 2);
+    ctx.arc(0, 0, 4.2, 0, Math.PI * 2);
     ctx.fill();
     ctx.restore();
   }

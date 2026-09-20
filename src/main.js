@@ -1,6 +1,6 @@
 import {
   WORLD_SIZE, CELL, DISTRICTS, RIVER, CROSSINGS, LANDMARKS,
-  buildingsInRect, propsInRect, findSpawnPoint, districtAt,
+  buildingsInRect, propsInRect, findSpawnPoint, districtAt, shade,
 } from './world.js';
 import { Player } from './player.js';
 import { Vehicle, CAR_TYPES, findNearbyVehicle } from './vehicles.js';
@@ -353,10 +353,22 @@ let respawnTimer = 3;
 const frenzyStar = { x: 5300, y: 2000 };
 
 // ---- Rendering ------------------------------------------------------------
-function drawRoadGrid(x0, y0, x1, y1) {
-  ctx.fillStyle = '#2b2f33';
+const ASPHALT = '#3a3d40';
+const SIDEWALK = '#8f8a7c';
+
+function drawGround(x0, y0, x1, y1) {
   const startX = Math.floor(x0 / CELL) * CELL;
   const startY = Math.floor(y0 / CELL) * CELL;
+
+  // Base pass: sidewalk everywhere on land, so building gaps read as pavement.
+  for (const d of DISTRICTS) {
+    const r = d.rect;
+    if (r.x + r.w < x0 || r.x > x1 || r.y + r.h < y0 || r.y > y1) continue;
+    ctx.fillStyle = SIDEWALK;
+    ctx.fillRect(Math.max(r.x, x0), Math.max(r.y, y0), Math.min(r.x + r.w, x1) - Math.max(r.x, x0), Math.min(r.y + r.h, y1) - Math.max(r.y, y0));
+  }
+
+  // Road cells: dark asphalt + chunky dashed centerlines, GTA2-style.
   for (let wy = startY; wy < y1; wy += CELL) {
     for (let wx = startX; wx < x1; wx += CELL) {
       const midx = wx + CELL / 2, midy = wy + CELL / 2;
@@ -371,17 +383,31 @@ function drawRoadGrid(x0, y0, x1, y1) {
       const nearBridgeX = midx > 4180 - 40 && midx < 4460 + 40;
       const nearTunnelX = midx > 1980 - 40 && midx < 2260 + 40;
       if (isRoadCol || isRoadRow || nearBridgeX || nearTunnelX) {
+        ctx.fillStyle = ASPHALT;
         ctx.fillRect(wx, wy, CELL, CELL);
+
+        // dashed yellow centerline, oriented along the road's run
+        ctx.fillStyle = '#f2cc3a';
+        const dash = 18, gap = 14;
+        if (isRoadCol || nearTunnelX) {
+          for (let dy = 4; dy < CELL; dy += dash + gap) {
+            ctx.fillRect(wx + CELL / 2 - 2, wy + dy, 4, Math.min(dash, CELL - dy));
+          }
+        } else {
+          for (let dx = 4; dx < CELL; dx += dash + gap) {
+            ctx.fillRect(wx + dx, wy + CELL / 2 - 2, Math.min(dash, CELL - dx), 4);
+          }
+        }
       }
     }
   }
 }
 
 function drawRiver(x0, y1) {
-  ctx.fillStyle = '#12405e';
+  ctx.fillStyle = '#1a6ea8';
   ctx.fillRect(x0 < 0 ? 0 : 0, RIVER.y0, WORLD_SIZE, RIVER.y1 - RIVER.y0);
   const t = performance.now() / 800;
-  ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+  ctx.strokeStyle = 'rgba(255,255,255,0.18)';
   ctx.lineWidth = 3;
   for (let wx = 0; wx < WORLD_SIZE; wx += 60) {
     ctx.beginPath();
@@ -408,13 +434,28 @@ function drawRiver(x0, y1) {
 }
 
 function drawBuilding(b) {
-  ctx.fillStyle = 'rgba(0,0,0,0.3)';
-  ctx.fillRect(b.x + b.shadowLen, b.y + b.shadowLen, b.w, b.h);
+  const wallDepth = Math.max(4, Math.min(12, b.shadowLen));
+
+  // hard-edged cast shadow (GTA2 buildings drop a flat, un-blurred shadow)
+  ctx.fillStyle = 'rgba(0,0,0,0.45)';
+  ctx.fillRect(b.x + wallDepth, b.y + wallDepth, b.w, b.h);
+
+  // pseudo-3D block: darker "wall" faces on the shadow side, lighter "roof" on top
+  const wallColor = shade(b.color, -0.35);
+  ctx.fillStyle = wallColor;
+  ctx.fillRect(b.x + wallDepth * 0.5, b.y + wallDepth * 0.5, b.w, b.h);
 
   ctx.fillStyle = b.color;
   ctx.fillRect(b.x, b.y, b.w, b.h);
-  ctx.strokeStyle = b.roof;
-  ctx.lineWidth = 2;
+
+  // roof highlight strip (top + left edge catch the light)
+  ctx.fillStyle = shade(b.color, 0.25);
+  ctx.fillRect(b.x, b.y, b.w, 4);
+  ctx.fillRect(b.x, b.y, 4, b.h);
+
+  // thick black outline, GTA2's signature sprite edge
+  ctx.strokeStyle = '#0a0a0a';
+  ctx.lineWidth = 2.5;
   ctx.strokeRect(b.x, b.y, b.w, b.h);
 
   // windows grid
@@ -425,27 +466,32 @@ function drawBuilding(b) {
     for (let c = 0; c < cols; c++) {
       const seed = (r * 31 + c * 17 + b.litSeed * 1000) % 5;
       if (seed < 2) continue;
-      ctx.globalAlpha = 0.55 + (seed / 5) * 0.4;
+      ctx.globalAlpha = 0.6 + (seed / 5) * 0.4;
       ctx.fillRect(b.x + 3 + c * (b.w / cols), b.y + 3 + r * (b.h / rows), Math.max(2, b.w / cols - 4), Math.max(2, b.h / rows - 4));
     }
   }
   ctx.globalAlpha = 1;
 
   if (b.hasDoor) {
-    ctx.fillStyle = '#241a12';
+    ctx.fillStyle = '#1a1108';
     const sides = [
-      { x: b.x + b.w / 2 - 5, y: b.y - 2, w: 10, h: 6 },
-      { x: b.x + b.w / 2 - 5, y: b.y + b.h - 4, w: 10, h: 6 },
-      { x: b.x - 2, y: b.y + b.h / 2 - 5, w: 6, h: 10 },
-      { x: b.x + b.w - 4, y: b.y + b.h / 2 - 5, w: 6, h: 10 },
+      { x: b.x + b.w / 2 - 6, y: b.y - 2, w: 12, h: 7 },
+      { x: b.x + b.w / 2 - 6, y: b.y + b.h - 5, w: 12, h: 7 },
+      { x: b.x - 2, y: b.y + b.h / 2 - 6, w: 7, h: 12 },
+      { x: b.x + b.w - 5, y: b.y + b.h / 2 - 6, w: 7, h: 12 },
     ];
     const s = sides[b.doorSide];
+    ctx.fillStyle = '#0a0a0a';
+    ctx.fillRect(s.x - 1, s.y - 1, s.w + 2, s.h + 2);
+    ctx.fillStyle = '#1a1108';
     ctx.fillRect(s.x, s.y, s.w, s.h);
   }
 
   if (b.signage) {
     const blink = Math.floor(performance.now() / 500 + b.litSeed * 10) % 2 === 0;
-    ctx.fillStyle = blink ? b.accent : 'rgba(255,255,255,0.25)';
+    ctx.fillStyle = '#0a0a0a';
+    ctx.fillRect(b.x + b.w * 0.15 - 2, b.y - 12, b.w * 0.7 + 4, 11);
+    ctx.fillStyle = blink ? b.accent : shade(b.accent, -0.4);
     ctx.fillRect(b.x + b.w * 0.15, b.y - 10, b.w * 0.7, 7);
   }
 }
@@ -574,15 +620,7 @@ function render() {
   const x0 = camera.x - camera.w / 2 - 100, y0 = camera.y - camera.h / 2 - 100;
   const x1 = camera.x + camera.w / 2 + 100, y1 = camera.y + camera.h / 2 + 100;
 
-  // ground base color per-district (broad strokes, then roads/buildings on top)
-  for (const d of DISTRICTS) {
-    const r = d.rect;
-    if (r.x + r.w < x0 || r.x > x1 || r.y + r.h < y0 || r.y > y1) continue;
-    ctx.fillStyle = '#1e2226';
-    ctx.fillRect(Math.max(r.x, x0), Math.max(r.y, y0), Math.min(r.x + r.w, x1) - Math.max(r.x, x0), Math.min(r.y + r.h, y1) - Math.max(r.y, y0));
-  }
-
-  drawRoadGrid(x0, y0, x1, y1);
+  drawGround(x0, y0, x1, y1);
   drawRiver(x0, x1);
 
   for (const b of buildingsInRect(x0, y0, x1, y1)) drawBuilding(b);

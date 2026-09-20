@@ -1,4 +1,5 @@
 import { collidesSolid } from './world.js';
+import { drawHumanoid } from './sprites.js';
 
 const WALK_SPEED = 90;      // px/s
 const SPRINT_SPEED = 165;
@@ -122,53 +123,7 @@ export class Player {
     ctx.fill();
     ctx.restore();
 
-    // legs (simple animated stride)
-    if (this.speed > 0) {
-      const swing = Math.sin(this.animT) * 5;
-      ctx.strokeStyle = '#0a0a0a';
-      ctx.lineWidth = 4;
-      ctx.lineCap = 'round';
-      ctx.beginPath();
-      ctx.moveTo(-3, 2); ctx.lineTo(-3 + swing * 0.3, 9);
-      ctx.moveTo(3, 2); ctx.lineTo(3 - swing * 0.3, 9);
-      ctx.stroke();
-    }
-
-    // chunky rotated torso, GTA2-style — a color-blocked square with thick outline
-    ctx.save();
-    ctx.rotate(this.angle);
-    ctx.fillStyle = '#0a0a0a';
-    ctx.fillRect(-RADIUS - 1.5, -RADIUS - 1.5, RADIUS * 2 + 3, RADIUS * 2 + 3);
-    ctx.fillStyle = '#2f6fd6';
-    ctx.fillRect(-RADIUS, -RADIUS, RADIUS * 2, RADIUS * 2);
-    ctx.fillStyle = '#1c4aa0';
-    ctx.fillRect(-RADIUS, RADIUS * 0.3, RADIUS * 2, RADIUS * 0.7);
-    ctx.restore();
-
-    // head
-    ctx.fillStyle = '#0a0a0a';
-    ctx.beginPath();
-    ctx.arc(0, 0, RADIUS * 0.55 + 1.5, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = '#f2c48d';
-    ctx.beginPath();
-    ctx.arc(0, 0, RADIUS * 0.55, 0, Math.PI * 2);
-    ctx.fill();
-
-    // weapon / facing stub
-    ctx.strokeStyle = '#0a0a0a';
-    ctx.lineWidth = 4.5;
-    ctx.lineCap = 'round';
-    ctx.beginPath();
-    ctx.moveTo(0, 0);
-    ctx.lineTo(Math.cos(this.angle) * (RADIUS + 9), Math.sin(this.angle) * (RADIUS + 9));
-    ctx.stroke();
-    ctx.strokeStyle = '#ffe14d';
-    ctx.lineWidth = 2.2;
-    ctx.beginPath();
-    ctx.moveTo(0, 0);
-    ctx.lineTo(Math.cos(this.angle) * (RADIUS + 9), Math.sin(this.angle) * (RADIUS + 9));
-    ctx.stroke();
+    drawHumanoid(ctx, this.angle, RADIUS, '#2f6fd6', '#20304a', this.speed > 0, this.animT, { hasWeapon: this.currentWeapon() !== 'fists' });
 
     ctx.restore();
   }

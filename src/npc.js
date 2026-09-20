@@ -1,4 +1,5 @@
-import { collidesSolid, districtAt, DISTRICTS } from './world.js';
+import { collidesSolid, districtAt, DISTRICTS, shade } from './world.js';
+import { drawHumanoid } from './sprites.js';
 
 // Gangs mapped roughly to districts for the respect/territory system.
 export const GANGS = [
@@ -28,6 +29,7 @@ export class Pedestrian {
     this.fleeing = false;
     this.shade = 0.7 + Math.random() * 0.3;
     this.hue = Math.floor(Math.random() * 360);
+    this.animT = Math.random() * 10;
   }
 
   isHostileTo(player) {
@@ -74,6 +76,7 @@ export class Pedestrian {
     const nx = this.x + dx, ny = this.y + dy;
     if (!collidesSolid(nx - 7, ny - 7, 14, 14)) {
       this.x = nx; this.y = ny;
+      this.animT += dt * 7;
     } else {
       this.angle += Math.PI * 0.5 + Math.random();
     }
@@ -103,22 +106,9 @@ export class Pedestrian {
     ctx.ellipse(0, 6, 7, 3, 0, 0, Math.PI * 2);
     ctx.fill();
 
-    ctx.fillStyle = '#0a0a0a';
-    ctx.beginPath();
-    ctx.arc(0, 0, 9.2, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = this.gang ? this.gang.color : `hsl(${this.hue},65%,${45 * this.shade}%)`;
-    ctx.beginPath();
-    ctx.arc(0, 0, 8, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = '#0a0a0a';
-    ctx.beginPath();
-    ctx.arc(0, 0, 5.2, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = '#f2c48d';
-    ctx.beginPath();
-    ctx.arc(0, 0, 4.2, 0, Math.PI * 2);
-    ctx.fill();
+    const shirt = this.gang ? this.gang.color : `hsl(${this.hue},65%,${45 * this.shade}%)`;
+    const pants = this.gang ? shade(shirt, -0.5) : `hsl(${this.hue},50%,${22 * this.shade}%)`;
+    drawHumanoid(ctx, this.angle, 9, shirt, pants, this.speed > 3, this.animT, { hasWeapon: !!this.gang });
     ctx.restore();
   }
 }

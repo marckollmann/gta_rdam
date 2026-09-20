@@ -1,4 +1,5 @@
 import { collidesSolid } from './world.js';
+import { drawHumanoid } from './sprites.js';
 
 const LEVEL_NAMES = ['', 'POLITIE', 'POLITIE', 'SWAT', 'FBI', 'LEGER'];
 
@@ -11,6 +12,7 @@ export class PoliceUnit {
     this.angle = 0;
     this.speed = 60 + level * 8;
     this.fireCd = 0;
+    this.animT = Math.random() * 10;
   }
 
   update(dt, player, addBullet) {
@@ -22,7 +24,7 @@ export class PoliceUnit {
     if (d > 90) {
       const nx = this.x + (dx / d) * this.speed * dt;
       const ny = this.y + (dy / d) * this.speed * dt;
-      if (!collidesSolid(nx - 8, ny - 8, 16, 16)) { this.x = nx; this.y = ny; }
+      if (!collidesSolid(nx - 8, ny - 8, 16, 16)) { this.x = nx; this.y = ny; this.animT += dt * 8; }
     }
 
     this.fireCd -= dt;
@@ -41,25 +43,13 @@ export class PoliceUnit {
     if (!this.alive) return;
     ctx.save();
     ctx.translate(this.x, this.y);
-    ctx.rotate(this.angle);
     const colors = ['', '#1c3a8a', '#1c3a8a', '#2b2b2b', '#1a1a1a', '#3a4a2a'];
-    const r = this.level >= 3 ? 12 : 9;
-    ctx.fillStyle = '#0a0a0a';
+    const r = this.level >= 3 ? 11 : 9;
+    ctx.fillStyle = 'rgba(0,0,0,0.3)';
     ctx.beginPath();
-    ctx.arc(0, 0, r + 1.3, 0, Math.PI * 2);
+    ctx.ellipse(0, r * 0.5, r * 0.8, r * 0.35, 0, 0, Math.PI * 2);
     ctx.fill();
-    ctx.fillStyle = colors[this.level] || '#1c3a8a';
-    ctx.beginPath();
-    ctx.arc(0, 0, r, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = '#0a0a0a';
-    ctx.beginPath();
-    ctx.arc(0, 0, 5.3, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = '#f2c48d';
-    ctx.beginPath();
-    ctx.arc(0, 0, 4.5, 0, Math.PI * 2);
-    ctx.fill();
+    drawHumanoid(ctx, this.angle, r, colors[this.level] || '#1c3a8a', '#111318', true, this.animT, { hasWeapon: true });
     ctx.restore();
   }
 }
